@@ -11,7 +11,7 @@ set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/TheClipper")
 juce_add_plugin(
   ${PROJECT_NAME}
   COMPANY_NAME
-  "MyCompany" # change this
+  "Metamath" # change this
   IS_SYNTH
   FALSE # may change this
   NEEDS_MIDI_INPUT
