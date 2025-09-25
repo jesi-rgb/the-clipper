@@ -1,8 +1,0 @@
-- name: Upload artifacts
-  uses: actions/upload-artifact@v3
-  with:
-    name: plugin-binaries-${{ matrix.os }}
-    path: |
-      build/**/VST3/*.vst3
-      build/**/AU/*.component
-      build/**/AAX/*.aax

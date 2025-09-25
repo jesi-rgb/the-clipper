@@ -1,8 +1,54 @@
-- name: Create Release
-  if: startsWith(github.ref, 'refs/tags/')
-  uses: softprops/action-gh-release@v1
-  with:
-    files: |
-      build/**/VST3/*.vst3
-      build/**/AU/*.component  
-      build/**/AAX/*.aax
+name: AutoRelease
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [macos-14, windows-latest]
+        build_type: [Debug, Release]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: List Xcode installations
+      if: matrix.os == 'macos-14'
+      run: sudo ls -1 /Applications | grep "Xcode"
+    - name: Select Xcode 16.2
+      if: matrix.os == 'macos-14'
+      run: sudo xcode-select -s /Applications/Xcode_16.2.0.app/Contents/Developer
+    - uses: actions/checkout@v4
+
+    - name: Cache dependencies
+      id: cache-libs
+      uses: actions/cache@v4
+      with:
+        path: ${{github.workspace}}
+        key: libs
+
+    - name: Configure CMake
+      run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }}
+
+    - name: Test
+      working-directory: ${{github.workspace}}/build
+      run: ctest -C ${{ matrix.build_type }}
+
+    # Add this step to upload artifacts
+    - name: Upload Plugin Binaries
+      uses: actions/upload-artifact@v4
+      if: matrix.build_type == 'Release'
+      with:
+        name: plugin-${{ matrix.os }}-${{ matrix.build_type }}
+        path: |
+          ${{github.workspace}}/build/**/*.vst3
+          ${{github.workspace}}/build/**/*.component
+          ${{github.workspace}}/build/**/*.aax
+        retention-days: 30
