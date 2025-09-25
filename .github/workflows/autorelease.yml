@@ -24,11 +24,19 @@ jobs:
       run: sudo xcode-select -s /Applications/Xcode_16.2.0.app/Contents/Developer
     - uses: actions/checkout@v4
 
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cmake
+          ${{github.workspace}}/build/_deps
+        key: ${{ runner.os }}-cmake-${{ hashFiles('CMakeLists.txt') }}
+
     - name: Configure CMake
       run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
     - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }}
+      run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }} --parallel
 
     - name: Upload Plugin Binaries
       uses: actions/upload-artifact@v4
@@ -50,19 +58,11 @@ jobs:
     - name: Download all artifacts
       uses: actions/download-artifact@v4
       
-    - name: Delete existing dev release
-      continue-on-error: true
-      run: |
-        gh release delete dev-latest --yes || true
-        git push --delete origin dev-latest || true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
     - name: Create Development Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: dev-latest
-        name: Latest Development Build
+        tag_name: dev-${{ github.sha }}
+        name: Development Build ${{ github.sha }}
         prerelease: true
         files: "**/*"
       env:
