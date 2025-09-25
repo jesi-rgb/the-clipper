@@ -1,6 +1,7 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include "Waveshape.h"
 
 namespace audio_plugin {
 class AudioPluginAudioProcessor : public juce::AudioProcessor {
@@ -35,7 +36,16 @@ public:
   void getStateInformation(juce::MemoryBlock& destData) override;
   void setStateInformation(const void* data, int sizeInBytes) override;
 
+  juce::AudioProcessorValueTreeState& getValueTreeState() { return valueTreeState; }
+
 private:
+  juce::AudioProcessorValueTreeState valueTreeState;
+  
+  std::atomic<float>* inputGainParameter = nullptr;
+  std::atomic<float>* thresholdParameter = nullptr;
+  std::atomic<float>* clippingModeParameter = nullptr;
+  std::atomic<float>* saturationParameter = nullptr;
+
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioPluginAudioProcessor)
 };
 }  // namespace audio_plugin
