@@ -33,19 +33,18 @@ jobs:
         key: ${{ runner.os }}-cmake-${{ hashFiles('CMakeLists.txt') }}
 
     - name: Configure CMake
-      run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+      run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_FLAGS="-O2"
 
-    - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }} --parallel
+    - name: Build with timeout
+      timeout-minutes: 20
+      run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }} --parallel 2
 
-    - name: Upload Plugin Binaries
+    - name: Upload VST3 Plugin
       uses: actions/upload-artifact@v4
       with:
-        name: plugin-${{ matrix.os }}
+        name: vst3-${{ matrix.os }}
         path: |
           ${{github.workspace}}/build/**/*.vst3
-          ${{github.workspace}}/build/**/*.component
-          ${{github.workspace}}/build/**/*.aax
 
   release:
     needs: build
