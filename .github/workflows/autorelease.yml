@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-14, windows-latest]
-        build_type: [Release]  # Only Release for releases
+        build_type: [Release]
 
     runs-on: ${{ matrix.os }}
 
@@ -50,11 +50,19 @@ jobs:
     - name: Download all artifacts
       uses: actions/download-artifact@v4
       
+    - name: Delete existing dev release
+      continue-on-error: true
+      run: |
+        gh release delete dev-latest --yes || true
+        git push --delete origin dev-latest || true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Create Development Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: dev-${{ github.run_number }}
-        name: Development Build ${{ github.run_number }}
+        tag_name: dev-latest
+        name: Latest Development Build
         prerelease: true
         files: "**/*"
       env:
