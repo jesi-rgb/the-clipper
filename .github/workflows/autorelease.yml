@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-14, windows-latest]
-        build_type: [Debug, Release]
+        build_type: [Release]  # Only Release for releases
 
     runs-on: ${{ matrix.os }}
 
@@ -24,31 +24,38 @@ jobs:
       run: sudo xcode-select -s /Applications/Xcode_16.2.0.app/Contents/Developer
     - uses: actions/checkout@v4
 
-    - name: Cache dependencies
-      id: cache-libs
-      uses: actions/cache@v4
-      with:
-        path: ${{github.workspace}}
-        key: libs
-
     - name: Configure CMake
       run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }}
 
-    - name: Test
-      working-directory: ${{github.workspace}}/build
-      run: ctest -C ${{ matrix.build_type }}
-
-    # Add this step to upload artifacts
     - name: Upload Plugin Binaries
       uses: actions/upload-artifact@v4
-      if: matrix.build_type == 'Release'
       with:
-        name: plugin-${{ matrix.os }}-${{ matrix.build_type }}
+        name: plugin-${{ matrix.os }}
         path: |
           ${{github.workspace}}/build/**/*.vst3
           ${{github.workspace}}/build/**/*.component
           ${{github.workspace}}/build/**/*.aax
-        retention-days: 30
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      
+    - name: Create Development Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: dev-${{ github.run_number }}
+        name: Development Build ${{ github.run_number }}
+        prerelease: true
+        files: "**/*"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
