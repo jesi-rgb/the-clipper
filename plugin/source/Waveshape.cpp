@@ -1,47 +1,59 @@
 #include "TheClipper/Waveshape.h"
+#include <cmath>
 
 namespace audio_plugin {
 
-    float Waveshape::hardClip(float input, float threshold, float saturation) {
-      float scaledInput = input * saturation;
+float Waveshape::hardClip(float input, float threshold, float saturation) {
+  float scaledInput = input * saturation;
 
-      if (scaledInput > threshold) {
-        return threshold;
-      } else if (scaledInput < -threshold) {
-        return -threshold;
-      }
+  if (scaledInput > threshold) {
+    return threshold;
+  } else if (scaledInput < -threshold) {
+    return -threshold;
+  }
 
-      return scaledInput;
-    }
+  return scaledInput;
+}
 
-    float Waveshape::softClip(float input, float threshold, float saturation) {
-      float scaledInput = input * saturation;
-      float normalizedInput = scaledInput / threshold;
+float Waveshape::softClip(float input, float threshold, float saturation) {
+  float scaledInput = input * saturation;
+  float normalizedInput = scaledInput / threshold;
 
-      return threshold * tanh_approx(normalizedInput);
-    }
+  return threshold * tanh(normalizedInput);
+}
 
-    float Waveshape::processClipping(float input,
-                                     float threshold,
-                                     float saturation,
-                                     ClippingMode mode) {
-      switch (mode) {
-        case ClippingMode::Hard:
-          return hardClip(input, threshold, saturation);
-        case ClippingMode::Soft:
-          return softClip(input, threshold, saturation);
-        default:
-          return input;
-      }
-    }
+float Waveshape::processClipping(float inputSample,
+                                 float threshold,
+                                 float saturation,
+                                 float inputGain,
+                                 ClippingMode mode) {
+  float input = gain(inputSample, inputGain);
 
-    float Waveshape::tanh_approx(float x) {
-      if (x < -3.0f)
-        return -1.0f;
-      if (x > 3.0f)
-        return 1.0f;
+  switch (mode) {
+    case ClippingMode::Hard:
+      return hardClip(input, threshold, saturation);
+    case ClippingMode::Soft:
+      return softClip(input, threshold, saturation);
+    default:
+      return input;
+  }
+}
 
-      return x * (27.0f + x * x) / (27.0f + 9.0f * x * x);
-    }
+float Waveshape::tanh_approx(float x) {
+  if (x < -3.0f)
+    return -1.0f;
+  if (x > 3.0f)
+    return 1.0f;
+
+  return x * (27.0f + x * x) / (27.0f + 9.0f * x * x);
+}
+
+float Waveshape::tanh(float x) {
+  return std::tanh(x);
+}
+
+float Waveshape::gain(float x, float gain) {
+  return (x * gain);  // in case gain is 0
+}
 
 }  // namespace audio_plugin

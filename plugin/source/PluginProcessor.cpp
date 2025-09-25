@@ -11,21 +11,34 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 #endif
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
-      ), 
-      valueTreeState(*this, nullptr, "PARAMETERS", {
-          std::make_unique<juce::AudioParameterFloat>("inputGain", "Input Gain", 
-              juce::NormalisableRange<float>(0.0f, 2.0f, 0.01f), 1.0f),
-          std::make_unique<juce::AudioParameterFloat>("threshold", "Threshold",
-              juce::NormalisableRange<float>(0.1f, 1.0f, 0.01f), 0.7f),
-          std::make_unique<juce::AudioParameterChoice>("clippingMode", "Clipping Mode",
-              juce::StringArray{"Hard", "Soft"}, 0),
-          std::make_unique<juce::AudioParameterFloat>("saturation", "Saturation",
-              juce::NormalisableRange<float>(1.0f, 10.0f, 0.1f), 2.0f)
-      }) {
-    inputGainParameter = valueTreeState.getRawParameterValue("inputGain");
-    thresholdParameter = valueTreeState.getRawParameterValue("threshold");
-    clippingModeParameter = valueTreeState.getRawParameterValue("clippingMode");
-    saturationParameter = valueTreeState.getRawParameterValue("saturation");
+              ),
+      valueTreeState(*this,
+                     nullptr,
+                     "PARAMETERS",
+                     {std::make_unique<juce::AudioParameterFloat>(
+                          "inputGain",
+                          "Input Gain",
+                          juce::NormalisableRange<float>(-10.0f, 10.0f, 0.1f),
+                          0.0f),
+                      std::make_unique<juce::AudioParameterFloat>(
+                          "threshold",
+                          "Threshold",
+                          juce::NormalisableRange<float>(0.1f, 1.0f, 0.01f),
+                          0.7f),
+                      std::make_unique<juce::AudioParameterChoice>(
+                          "clippingMode",
+                          "Clipping Mode",
+                          juce::StringArray{"Hard", "Soft"},
+                          0),
+                      std::make_unique<juce::AudioParameterFloat>(
+                          "saturation",
+                          "Saturation",
+                          juce::NormalisableRange<float>(1.0f, 10.0f, 0.1f),
+                          2.0f)}) {
+  inputGainParameter = valueTreeState.getRawParameterValue("inputGain");
+  thresholdParameter = valueTreeState.getRawParameterValue("threshold");
+  clippingModeParameter = valueTreeState.getRawParameterValue("clippingMode");
+  saturationParameter = valueTreeState.getRawParameterValue("saturation");
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor() {}
@@ -136,19 +149,15 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   const float inputGain = inputGainParameter->load();
   const float threshold = thresholdParameter->load();
   const float saturation = saturationParameter->load();
-  const ClippingMode clippingMode = static_cast<ClippingMode>(static_cast<int>(clippingModeParameter->load()));
+  const ClippingMode clippingMode = static_cast<ClippingMode>(
+      static_cast<int>(clippingModeParameter->load()));
 
   for (int channel = 0; channel < totalNumInputChannels; ++channel) {
     auto* channelData = buffer.getWritePointer(channel);
-    
+
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample) {
-      float inputSample = channelData[sample] * inputGain;
-      
-      if (std::abs(inputSample) > threshold) {
-        channelData[sample] = Waveshape::processClipping(inputSample, threshold, saturation, clippingMode);
-      } else {
-        channelData[sample] = inputSample;
-      }
+      channelData[sample] = Waveshape::processClipping(
+          channelData[sample], threshold, saturation, inputGain, clippingMode);
     }
   }
 }
@@ -170,7 +179,8 @@ void AudioPluginAudioProcessor::getStateInformation(
 
 void AudioPluginAudioProcessor::setStateInformation(const void* data,
                                                     int sizeInBytes) {
-  std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+  std::unique_ptr<juce::XmlElement> xmlState(
+      getXmlFromBinary(data, sizeInBytes));
   if (xmlState.get() != nullptr)
     if (xmlState->hasTagName(valueTreeState.state.getType()))
       valueTreeState.replaceState(juce::ValueTree::fromXml(*xmlState));

@@ -5,12 +5,14 @@ namespace audio_plugin {
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(
     AudioPluginAudioProcessor& p)
     : AudioProcessorEditor(&p), processorRef(p) {
-  inputGainSlider.setSliderStyle(juce::Slider::Rotary);
+  inputGainSlider.setSliderStyle(juce::Slider::LinearVertical);
   inputGainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
   addAndMakeVisible(inputGainSlider);
+
   inputGainLabel.setText("Input Gain", juce::dontSendNotification);
   inputGainLabel.setJustificationType(juce::Justification::centred);
   addAndMakeVisible(inputGainLabel);
+
   inputGainAttachment =
       std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
           processorRef.getValueTreeState(), "inputGain", inputGainSlider);
@@ -18,9 +20,11 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(
   thresholdSlider.setSliderStyle(juce::Slider::Rotary);
   thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
   addAndMakeVisible(thresholdSlider);
+
   thresholdLabel.setText("Threshold", juce::dontSendNotification);
   thresholdLabel.setJustificationType(juce::Justification::centred);
   addAndMakeVisible(thresholdLabel);
+
   thresholdAttachment =
       std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
           processorRef.getValueTreeState(), "threshold", thresholdSlider);
@@ -28,9 +32,11 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(
   clippingModeCombo.addItem("Hard", 1);
   clippingModeCombo.addItem("Soft", 2);
   addAndMakeVisible(clippingModeCombo);
+
   clippingModeLabel.setText("Clipping Mode", juce::dontSendNotification);
   clippingModeLabel.setJustificationType(juce::Justification::centred);
   addAndMakeVisible(clippingModeLabel);
+
   clippingModeAttachment =
       std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
           processorRef.getValueTreeState(), "clippingMode", clippingModeCombo);
@@ -55,7 +61,8 @@ void AudioPluginAudioProcessorEditor::paint(juce::Graphics& g) {
 
   g.setColour(juce::Colours::white);
   g.setFont(24.0f);
-  g.drawFittedText("The Clipper by askldjfha", juce::Rectangle<int>(0, 10, getWidth(), 30),
+  g.drawFittedText("The Clipper by askldjfha",
+                   juce::Rectangle<int>(0, 10, getWidth(), 30),
                    juce::Justification::centred, 1);
 }
 
