@@ -3,22 +3,16 @@ name: AutoRelease
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
   build:
     strategy:
       matrix:
         os: [macos-14, windows-latest]
-        build_type: [Release]
 
     runs-on: ${{ matrix.os }}
 
     steps:
-    - name: List Xcode installations
-      if: matrix.os == 'macos-14'
-      run: sudo ls -1 /Applications | grep "Xcode"
     - name: Select Xcode 16.2
       if: matrix.os == 'macos-14'
       run: sudo xcode-select -s /Applications/Xcode_16.2.0.app/Contents/Developer
@@ -33,36 +27,48 @@ jobs:
         key: ${{ runner.os }}-cmake-${{ hashFiles('CMakeLists.txt') }}
 
     - name: Configure CMake
-      run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_FLAGS="-O2"
+      run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release
 
-    - name: Build with timeout
-      timeout-minutes: 20
-      run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }} --parallel 2
+    - name: Build
+      timeout-minutes: 15
+      run: cmake --build ${{github.workspace}}/build --config Release --parallel 2
 
-    - name: Upload VST3 Plugin
+    - name: Upload VST3
       uses: actions/upload-artifact@v4
       with:
         name: vst3-${{ matrix.os }}
-        path: |
-          ${{github.workspace}}/build/**/*.vst3
+        path: ${{github.workspace}}/build/**/*.vst3
 
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Download all artifacts
+    - name: Download artifacts
       uses: actions/download-artifact@v4
       
-    - name: Create Development Release
+    - name: Delete existing release
+      continue-on-error: true
+      run: |
+        curl -X DELETE \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/repos/${{ github.repository }}/releases/tags/latest-dev"
+
+    - name: Delete existing tag
+      continue-on-error: true
+      run: |
+        curl -X DELETE \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/repos/${{ github.repository }}/git/refs/tags/latest-dev"
+
+    - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: dev-${{ github.sha }}
-        name: Development Build ${{ github.sha }}
+        tag_name: latest-dev
+        name: Latest Development Build
         prerelease: true
-        files: "**/*"
+        files: "**/*.vst3"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
