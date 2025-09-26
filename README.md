@@ -6,7 +6,7 @@ A JUCE-based audio clipper plugin that provides precise clipping and waveshaping
 
 ## Dev
 
-In the main repo directory execute:
+In the main repo directory do:
 
 ```bash
 $ cmake --preset default # uses the Ninja build system
