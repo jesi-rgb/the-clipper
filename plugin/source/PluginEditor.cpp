@@ -1,15 +1,18 @@
 #include "TheClipper/PluginEditor.h"
 #include "TheClipper/PluginProcessor.h"
+#include "BinaryData.h"
 
 namespace audio_plugin {
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(
     AudioPluginAudioProcessor& p)
     : AudioProcessorEditor(&p), processorRef(p) {
+  setLookAndFeel(&lookAndFeel);
   inputGainSlider.setSliderStyle(juce::Slider::LinearVertical);
   inputGainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
   addAndMakeVisible(inputGainSlider);
 
   inputGainLabel.setText("Input Gain", juce::dontSendNotification);
+  inputGainLabel.setFont(departureMono);
   inputGainLabel.setJustificationType(juce::Justification::centred);
   addAndMakeVisible(inputGainLabel);
 
@@ -51,18 +54,22 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(
       std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
           processorRef.getValueTreeState(), "saturation", saturationSlider);
 
-  setSize(480, 320);
+  setSize(700, 400);
 }
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {}
 
 void AudioPluginAudioProcessorEditor::paint(juce::Graphics& g) {
-  g.fillAll(juce::Colours::darkgrey);
+  juce::ColourGradient bg(juce::Colour(0xff0d0d0d), 0, 0, 
+                         juce::Colour(0xff1a1a1a), static_cast<float>(getWidth()), 
+                         static_cast<float>(getHeight()), false);
+  g.setGradientFill(bg);
+  g.fillAll();
 
+  
   g.setColour(juce::Colours::white);
-  g.setFont(24.0f);
-  g.drawFittedText("The Clipper by askldjfha",
-                   juce::Rectangle<int>(0, 10, getWidth(), 30),
+  g.setFont(departureMono);
+  g.drawFittedText("THE CLIPPER", juce::Rectangle<int>(0, 10, getWidth(), 30),
                    juce::Justification::centred, 1);
 }
 
