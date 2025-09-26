@@ -1,74 +1,80 @@
-name: AutoRelease
+name: Build and Release JUCE Plugin
 
 on:
   push:
-    branches: [ "main" ]
+    tags:
+      - 'v*'  # Triggers on version tags like v1.0.0
 
 jobs:
   build:
     strategy:
       matrix:
-        os: [macos-14, windows-latest]
-
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        
     runs-on: ${{ matrix.os }}
-
+    
     steps:
-    - name: Select Xcode 16.2
-      if: matrix.os == 'macos-14'
-      run: sudo xcode-select -s /Applications/Xcode_16.2.0.app/Contents/Developer
     - uses: actions/checkout@v4
-
-    - name: Cache dependencies
-      uses: actions/cache@v4
       with:
-        path: |
-          ~/.cmake
-          ${{github.workspace}}/build/_deps
-        key: ${{ runner.os }}-cmake-${{ hashFiles('CMakeLists.txt') }}
-
-    - name: Configure CMake
-      run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release
-
-    - name: Build
-      timeout-minutes: 15
-      run: cmake --build ${{github.workspace}}/build --config Release --parallel 2
-
-    - name: Upload VST3
+        submodules: recursive
+        
+    - name: Setup JUCE dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libasound2-dev libjack-jackd2-dev \
+          ladspa-sdk libcurl4-openssl-dev libfreetype6-dev \
+          libx11-dev libxcomposite-dev libxcursor-dev libxcursor-dev \
+          libxext-dev libxinerama-dev libxrandr-dev libxrender-dev \
+          libwebkit2gtk-4.0-dev libglu1-mesa-dev mesa-common-dev
+          
+    - name: Build Plugin
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build --config Release
+        
+    - name: Package artifacts
+      shell: bash
+      run: |
+        mkdir -p artifacts
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          cp -r build/*_artefacts/Release/VST3/*.vst3 artifacts/ || true
+          cp -r build/*_artefacts/Release/Standalone/*.exe artifacts/ || true
+        elif [[ "$RUNNER_OS" == "macOS" ]]; then
+          cp -r build/*_artefacts/Release/VST3/*.vst3 artifacts/ || true
+          cp -r build/*_artefacts/Release/AU/*.component artifacts/ || true
+          cp -r build/*_artefacts/Release/Standalone/*.app artifacts/ || true
+        else
+          cp -r build/*_artefacts/Release/VST3/*.vst3 artifacts/ || true
+          cp -r build/*_artefacts/Release/Standalone/* artifacts/ || true
+        fi
+        
+    - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: vst3-${{ matrix.os }}
-        path: ${{github.workspace}}/build/**/*.vst3
-
+        name: plugin-${{ runner.os }}-${{ github.ref_name }}
+        path: artifacts/
+        
   release:
     needs: build
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
     
     steps:
-    - name: Download artifacts
+    - name: Download all artifacts
       uses: actions/download-artifact@v4
       
-    - name: Delete existing release
-      continue-on-error: true
+    - name: Create release archives
       run: |
-        curl -X DELETE \
-          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          "https://api.github.com/repos/${{ github.repository }}/releases/tags/latest-dev"
-
-    - name: Delete existing tag
-      continue-on-error: true
-      run: |
-        curl -X DELETE \
-          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          "https://api.github.com/repos/${{ github.repository }}/git/refs/tags/latest-dev"
-
+        for dir in plugin-*/; do
+          os_name=$(echo $dir | sed 's/plugin-\(.*\)-v.*/\1/')
+          zip -r "${dir%/}.zip" "$dir"
+        done
+        
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: latest-dev
-        name: Latest Development Build
-        prerelease: true
-        files: "**/*.vst3"
+        files: "*.zip"
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
