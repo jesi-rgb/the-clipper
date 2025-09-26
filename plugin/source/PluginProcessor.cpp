@@ -1,5 +1,6 @@
 #include "TheClipper/PluginProcessor.h"
 #include "TheClipper/PluginEditor.h"
+#include "TheClipper/Waveshape.h"
 
 namespace audio_plugin {
 AudioPluginAudioProcessor::AudioPluginAudioProcessor()
@@ -18,7 +19,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                      {std::make_unique<juce::AudioParameterFloat>(
                           "inputGain",
                           "Input Gain",
-                          juce::NormalisableRange<float>(-10.0f, 10.0f, 0.1f),
+                          juce::NormalisableRange<float>(-20.0f, 6.0f, 0.1f),
                           0.0f),
                       std::make_unique<juce::AudioParameterFloat>(
                           "threshold",

@@ -16,10 +16,10 @@ public:
                                float inputGain,
                                ClippingMode mode);
 
+  static float gain(float x, float gain);
 private:
   static float tanh_approx(float x);
   static float tanh(float x);
-  static float gain(float x, float gain);
 };
 
 }  // namespace audio_plugin

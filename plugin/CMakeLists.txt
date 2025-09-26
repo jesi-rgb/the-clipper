@@ -30,9 +30,9 @@ juce_add_plugin(
 )
 
 # Sets the source files of the plugin project.
-set(SOURCE_FILES source/PluginEditor.cpp source/PluginProcessor.cpp source/Waveshape.cpp source/CustomLookAndFeel.cpp)
+set(SOURCE_FILES source/PluginEditor.cpp source/PluginProcessor.cpp source/Waveshape.cpp source/CustomLookAndFeel.cpp source/Graphics.cpp)
 # Optional; includes header files in the project file tree in Visual Studio
-set(HEADER_FILES ${INCLUDE_DIR}/PluginEditor.h ${INCLUDE_DIR}/PluginProcessor.h ${INCLUDE_DIR}/Waveshape.h ${INCLUDE_DIR}/CustomLookAndFeel.h)
+set(HEADER_FILES ${INCLUDE_DIR}/PluginEditor.h ${INCLUDE_DIR}/PluginProcessor.h ${INCLUDE_DIR}/Waveshape.h ${INCLUDE_DIR}/CustomLookAndFeel.h ${INCLUDE_DIR}/Graphics.h)
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCE_FILES} ${HEADER_FILES})
 
 # Add font resource

@@ -1,4 +1,5 @@
 #include "TheClipper/CustomLookAndFeel.h"
+#include "TheClipper/Graphics.h"
 #include "BinaryData.h"
 
 namespace audio_plugin {
@@ -22,56 +23,40 @@ void CustomLookAndFeel::drawRotarySlider(juce::Graphics& g,
                                          float rotaryStartAngle,
                                          float rotaryEndAngle,
                                          juce::Slider&) {
+  using namespace graphics;
+  
   auto bounds = juce::Rectangle<int>(x, y, width, height).toFloat().reduced(10);
   auto radius = juce::jmin(bounds.getWidth(), bounds.getHeight()) / 2.0f;
-  auto toAngle =
-      rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
+  auto toAngle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
   auto centre = bounds.getCentre();
 
-  // Draw outer glow
-  for (float i = 0; i < 5; ++i) {
-    g.setColour(primaryColor.withAlpha(0.1f - i * 0.02f));
-    g.drawEllipse(centre.x - radius - i, centre.y - radius - i,
-                  (radius + i) * 2, (radius + i) * 2, 2.0f);
-  }
+  Circle(centre, radius)
+    .glow(15, primaryColor, 0.1f, 0.02f)
+    .render(g);
 
-  // Draw main track
-  juce::Path backgroundTrack;
-  backgroundTrack.addArc(centre.x - radius, centre.y - radius, radius * 2.0f,
-                         radius * 2.0f, rotaryStartAngle, rotaryEndAngle, true);
-  g.setColour(backgroundColor.brighter(0.3f));
-  g.strokePath(backgroundTrack,
-               juce::PathStrokeType(8.0f, juce::PathStrokeType::curved));
+  Arc(centre, radius, rotaryStartAngle, rotaryEndAngle)
+    .stroke(backgroundColor.brighter(0.3f), 8.0f)
+    .render(g);
 
-  // Draw active track with gradient
   if (sliderPos > 0.0f) {
-    juce::Path activeTrack;
-    activeTrack.addArc(centre.x - radius, centre.y - radius, radius * 2.0f,
-                       radius * 2.0f, rotaryStartAngle, toAngle, true);
-
     juce::ColourGradient gradient(primaryColor, centre.x, centre.y,
                                   secondaryColor, centre.x + radius,
                                   centre.y + radius, false);
-    g.setGradientFill(gradient);
-    g.strokePath(activeTrack,
-                 juce::PathStrokeType(8.0f, juce::PathStrokeType::curved));
+    Arc(centre, radius, rotaryStartAngle, toAngle)
+      .stroke(gradient, 8.0f)
+      .render(g);
   }
 
-  // Draw neon thumb
   auto thumbPoint = centre.getPointOnCircumference(radius - 4, toAngle);
-
-  // Thumb glow
-  for (float i = 0; i < 3; ++i) {
-    g.setColour(accentColor.withAlpha(0.3f - i * 0.1f));
-    g.fillEllipse(thumbPoint.x - (12 + i * 2), thumbPoint.y - (12 + i * 2),
-                  (12 + i * 2) * 2, (12 + i * 2) * 2);
-  }
-
-  // Thumb core
-  g.setColour(accentColor);
-  g.fillEllipse(thumbPoint.x - 8, thumbPoint.y - 8, 16, 16);
-  g.setColour(textColor);
-  g.fillEllipse(thumbPoint.x - 4, thumbPoint.y - 4, 8, 8);
+  
+  Circle(thumbPoint, 12)
+    .fill(accentColor)
+    .glow(3, accentColor, 0.3f, 0.1f)
+    .render(g);
+    
+  Circle(thumbPoint, 4)
+    .fill(textColor)
+    .render(g);
 }
 
 void CustomLookAndFeel::drawLinearSlider(juce::Graphics& g,
@@ -92,52 +77,35 @@ void CustomLookAndFeel::drawLinearSlider(juce::Graphics& g,
   auto trackBounds = juce::Rectangle<float>(xf, yf, wf, hf).reduced(10);
 
   if (style == juce::Slider::LinearVertical) {
+    using namespace graphics;
+    
     trackBounds = trackBounds.withSizeKeepingCentre(12, hf - 20);
 
-    // Draw track background with neon edge
-    g.setColour(backgroundColor.brighter(0.2f));
-    g.fillRoundedRectangle(trackBounds, 6.0f);
+    RoundedRect(trackBounds, 6.0f)
+      .fill(backgroundColor.brighter(0.2f))
+      .stroke(primaryColor.withAlpha(0.8f), 2.0f)
+      .render(g);
 
-    // Neon outline
-    g.setColour(primaryColor.withAlpha(0.8f));
-    g.drawRoundedRectangle(trackBounds, 6.0f, 2.0f);
-
-    // Draw filled portion with gradient
-    auto normalizedPos =
-        (sliderPos - trackBounds.getY()) / trackBounds.getHeight();
-
+    auto normalizedPos = (sliderPos - trackBounds.getY()) / trackBounds.getHeight();
     normalizedPos = 1 - juce::jlimit(0.0f, 1.0f, normalizedPos);
-    std::cout << "normalizedPos: " << normalizedPos << std::endl;
-    std::cout << "sliderPos: " << sliderPos << std::endl;
 
     auto filledHeight = normalizedPos * trackBounds.getHeight();
-    auto filledBounds =
-        trackBounds.withTop(trackBounds.getBottom() - filledHeight);
+    auto filledBounds = trackBounds.withTop(trackBounds.getBottom() - filledHeight);
 
     juce::ColourGradient gradient(
         secondaryColor, filledBounds.getCentreX(), filledBounds.getBottom(),
         primaryColor, filledBounds.getCentreX(), filledBounds.getY(), false);
-    g.setGradientFill(gradient);
-    g.fillRoundedRectangle(filledBounds, 6.0f);
+    
+    RoundedRect(filledBounds, 6.0f)
+      .gradient(gradient)
+      .render(g);
 
-    // Draw pulsating thumb
-    auto thumbY =
-        trackBounds.getBottom() - normalizedPos * trackBounds.getHeight();
-    auto thumbBounds = juce::Rectangle<float>(trackBounds.getCentreX() - 15,
-                                              thumbY - 8, 30, 16);
+    auto thumbY = trackBounds.getBottom() - normalizedPos * trackBounds.getHeight();
+    auto thumbBounds = juce::Rectangle<float>(trackBounds.getCentreX() - 15, thumbY - 8, 30, 16);
 
-    // Thumb glow
-    for (float i = 0; i < 3; ++i) {
-      g.setColour(accentColor.withAlpha(0.4f - i * 0.1f));
-      auto glowBounds = thumbBounds.expanded(i * 2);
-      g.fillRoundedRectangle(glowBounds, 8.0f);
-    }
-
-    // Thumb
-    // g.setColour(accentColor);
-    // g.fillRoundedRectangle(thumbBounds, 8.0f);
-    // g.setColour(textColor);
-    // g.fillRoundedRectangle(thumbBounds.reduced(4), 4.0f);
+    RoundedRect(thumbBounds, 8.0f)
+      .glow(3, accentColor, 0.4f, 0.1f)
+      .render(g);
   }
 }
 
@@ -150,20 +118,20 @@ void CustomLookAndFeel::drawComboBox(juce::Graphics& g,
                                      int buttonW,
                                      int buttonH,
                                      juce::ComboBox&) {
+  using namespace graphics;
+  
   auto bounds = juce::Rectangle<int>(0, 0, width, height).toFloat().reduced(2);
 
-  // Background with neon border
-  g.setColour(backgroundColor.brighter(0.1f));
-  g.fillRoundedRectangle(bounds, 8.0f);
-
-  // Animated border
   juce::ColourGradient borderGradient(primaryColor, 0, 0, secondaryColor,
                                       static_cast<float>(width),
                                       static_cast<float>(height), false);
-  g.setGradientFill(borderGradient);
-  g.drawRoundedRectangle(bounds, 8.0f, 2.0f);
 
-  // Arrow
+  RoundedRect(bounds, 8.0f)
+    .fill(backgroundColor.brighter(0.1f))
+    .gradient(borderGradient)
+    .stroke(juce::Colours::white, 2.0f)
+    .render(g);
+
   auto arrowBounds = juce::Rectangle<float>(static_cast<float>(buttonX),
                                             static_cast<float>(buttonY),
                                             static_cast<float>(buttonW),

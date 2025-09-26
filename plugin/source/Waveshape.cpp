@@ -52,8 +52,9 @@ float Waveshape::tanh(float x) {
   return std::tanh(x);
 }
 
-float Waveshape::gain(float x, float gain) {
-  return (x * gain);  // in case gain is 0
-}
 
+float Waveshape::gain(float x, float gainDB) {
+  float linearGain = std::pow(10.0f, gainDB / 20.0f);
+  return x * linearGain;
+}
 }  // namespace audio_plugin
