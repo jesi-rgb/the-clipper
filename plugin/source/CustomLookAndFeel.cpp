@@ -103,7 +103,14 @@ void CustomLookAndFeel::drawLinearSlider(juce::Graphics& g,
     g.drawRoundedRectangle(trackBounds, 6.0f, 2.0f);
 
     // Draw filled portion with gradient
-    auto filledHeight = sliderPos * trackBounds.getHeight();
+    auto normalizedPos =
+        (sliderPos - trackBounds.getY()) / trackBounds.getHeight();
+
+    normalizedPos = 1 - juce::jlimit(0.0f, 1.0f, normalizedPos);
+    std::cout << "normalizedPos: " << normalizedPos << std::endl;
+    std::cout << "sliderPos: " << sliderPos << std::endl;
+
+    auto filledHeight = normalizedPos * trackBounds.getHeight();
     auto filledBounds =
         trackBounds.withTop(trackBounds.getBottom() - filledHeight);
 
@@ -114,7 +121,8 @@ void CustomLookAndFeel::drawLinearSlider(juce::Graphics& g,
     g.fillRoundedRectangle(filledBounds, 6.0f);
 
     // Draw pulsating thumb
-    auto thumbY = trackBounds.getBottom() - sliderPos * trackBounds.getHeight();
+    auto thumbY =
+        trackBounds.getBottom() - normalizedPos * trackBounds.getHeight();
     auto thumbBounds = juce::Rectangle<float>(trackBounds.getCentreX() - 15,
                                               thumbY - 8, 30, 16);
 
@@ -126,10 +134,10 @@ void CustomLookAndFeel::drawLinearSlider(juce::Graphics& g,
     }
 
     // Thumb
-    g.setColour(accentColor);
-    g.fillRoundedRectangle(thumbBounds, 8.0f);
-    g.setColour(textColor);
-    g.fillRoundedRectangle(thumbBounds.reduced(4), 4.0f);
+    // g.setColour(accentColor);
+    // g.fillRoundedRectangle(thumbBounds, 8.0f);
+    // g.setColour(textColor);
+    // g.fillRoundedRectangle(thumbBounds.reduced(4), 4.0f);
   }
 }
 
@@ -172,7 +180,7 @@ void CustomLookAndFeel::drawComboBox(juce::Graphics& g,
 
 void CustomLookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label) {
   auto bounds = label.getLocalBounds().toFloat();
-  g.setFont(departureMono);
+  g.setFont(departureMono.withPointHeight(15.0f));
 
   // Text shadow/glow effect
   g.setColour(primaryColor.withAlpha(0.3f));
